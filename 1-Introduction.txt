@@ -1,0 +1,54 @@
+# Important Commands and Basic Use
+
+Get-Command -Noun "host"
+Get-Help Select-Object -Verbose
+
+New-Item C:\Drivers\oldfile.txt
+New-Item C:\Drivers\newfile.txt
+
+Get-ChildItem C:\Drivers | Sort-Object CreationTime | Select-Object -Property Attributes,Name,LastAccessTime,FullName -Skip 1|
+         Format-Table fullname,attributes,LastAccessTime -AutoSize 
+$NewestObject = (Get-ChildItem C:\Drivers | Select-Object -Property Name,CreationTime -Last 1 -Verbose) ; $NewestObject
+
+#Interact with host
+
+Get-Command -Noun "Host"
+
+Write-Host "This is output" -ForegroundColor Black -BackgroundColor Yellow
+$UserInput =  (Read-Host "Please type anything")
+Write-Host "$userInput" -BackgroundColor White -ForegroundColor Red
+
+#String formatting
+"Pi is {0}" -f [System.Math]::PI
+"Pi is {0:n2}" -f [System.Math]::PI
+"Pi is {0:n2} (thats {1:p} close enough anyway)" -f [System.Math]::PI, 0.99
+
+# _$ Variable and Piping
+# Get-SomeObjects | Filter-Objects | Perform-SomeOperation
+Get-Content .\newfile.txt | Select-String "Adv" | 
+Get-Content .\newfile.txt | Select-String "Adv" | Get-Member -MemberType Method
+Get-Service | Where-Object {$_.Status -eq "Running"} 
+Get-ChildItem | ForEach-Object {Write-Host $_.Name}
+
+#PowerShell Providers
+Get-PSProvider 
+Get-PSDrive
+Set-Location 'C:\'
+Set-Location 'HKLM:' 
+Get-ChildItem -ErrorAction Ignore
+# If errors keep popping up, use -ErrorAction Ignore to filter out error messages
+Set-Location "HKCU:"
+Get-ChildItem -ErrorAction Ignore
+CD '.\Control Panel'
+CD 'HKCU:\Control Panel\Colors'
+# Get the items and registry keys
+Get-Item -Path .\ 
+Get-ItemPropertyValue -Path .\ -Name "Window"
+
+#Same Commands but slightly differ based on PS Provider
+New-Item -Path 'HKCU:\Control Panel\Colors' -ItemType String -Value "BlueEyes" -Name "PersonalColor" 
+New-Item -Path "C:\Drivers" -ItemType File -Name NewFile2.txt -Verbose -Force
+
+#Create new PS Drives 
+New-PSDrive Temp -PSProvider FileSystem -Root 'C:\Temp\'
+CD Temp:\ #Or Set-Location Temp:\
