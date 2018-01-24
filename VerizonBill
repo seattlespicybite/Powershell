@@ -1,0 +1,29 @@
+#Select recent bill in XML format
+[xml]$v =Get-Content C:\users\srossolov\Documents\v.xml
+
+#Count number of unique lines
+$lines = $v.Breakdown_Total_Charges_Details.Voice_and_Data.Voice_and_Data_Charges.Voice_or_Data_Charge.mtn | Select-Object -Unique
+$lines.Length
+
+#Get the Mobile Iron Charge
+$MITotal = ($v.Breakdown_Total_Charges_Details.Account_Charges_Voice_and_Data.Account_Charges).Trim("$")
+
+#Calcualte fee per each line
+$mifee = "{0:N2}" -f $($MITotal/$lines.Length)
+
+###Convert $mifee to INT
+###Convert 
+
+
+#Add fee for each line 
+"Total Lines: $($lines.Count)"
+($count[3].Total_Charges).Trim("$")*1 + $mifee*1
+for ($i = 0; $i -lt $lines.Count; $i++)
+{
+    if ($count[$i].mtn -ne $null) 
+    {
+        $count[$i] = $count[$i].Total_Charges + $mifee
+
+    "Line $($count[$i].mtn) Total: $($count[$i].Total_Charges)"
+    } 
+}
