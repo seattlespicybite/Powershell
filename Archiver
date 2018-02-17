@@ -1,9 +1,15 @@
 ##############################################################################
 # Declare variables#
 ##############################################################################
+$OldExecutionPolicy = Get-ExecutionPolicy
+Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Force -Scope CurrentUser
+$oldErrorActionPreference = $ErrorActionPreference
+
 $localLogFilePath = "C:\users\log.txt"
 $SafetyCheck = $true
-$RemoteArchive = "\\mdcfiles\Archive\"
+$FileServerName = "MDCFILES"
+$RemoteArchive = "\\$FileServerName\E`$\Archive"
+
 
 # Appends text to a log file $LocalLogFilePath
 # Example: Log-it -LogRecord "Text"
@@ -19,7 +25,7 @@ function Log-It () {
 	$LogRecord | Out-File -FilePath $LocalLogFilePath -Append
 }
 
-# Display text tin Output Text 
+# Display text in Output Text Box
 # Example: Add-SSAOutput -OutputText "Text"
 function Add-SSAOutput {
 	[CmdletBinding()]
@@ -43,7 +49,7 @@ function Add-SSAOutput {
 	}
 }
 
-
+# Begin Form XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX#
 
 Add-Type -AssemblyName System.Windows.Forms
 
@@ -128,7 +134,6 @@ $Available_Listview.Columns.Add("Profiles") | Out-Null
 $Available_ListView.AutoResizeColumns("HeaderSize")
 $Available_Listview.CheckBoxes = $true
 $Profile_Management_Form.controls.Add($Available_Listview)
-
 
 $Selected_Listview = New-Object system.windows.Forms.ListView
 $Selected_Listview.Width = 110
@@ -364,8 +369,9 @@ function Backup-Profile {
 		Add-SSAOutput -OutputText "Account $UserAccountName Archived successfully to $BackupFilePath "
 		Log-It "Account $UserAccountName Archived successfully to $BackupFilePath "
 
-		Copy-Item "$BackupFilePath.zip" $RemoteArchive
-		Log-It "Account $UserAccountName Archived successfully to $RemoteArchive "
+		if(Copy-Item "$BackupFilePath.zip" $RemoteArchive) {
+			Log-It "Account $UserAccountName Archived successfully to $RemoteArchive "
+		}
 	}
 	Catch{
 		Log-It -LogRecord $Error[0]
