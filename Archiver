@@ -1,0 +1,374 @@
+##############################################################################
+# Declare variables#
+##############################################################################
+$localLogFilePath = "C:\users\log.txt"
+$SafetyCheck = $true
+$RemoteArchive = "\\mdcfiles\Archive\"
+
+# Appends text to a log file $LocalLogFilePath
+# Example: Log-it -LogRecord "Text"
+function Log-It () {
+	Param(
+		[parameter(Mandatory=$true)]
+		[string]$LogRecord
+	)
+	if(-NOT $(Test-Path $localLogFilePath)){
+		New-Item -ItemType File -Path $localLogFilePath
+	}
+	Get-Date -Format g | Out-File $LocalLogFilePath -Append
+	$LogRecord | Out-File -FilePath $LocalLogFilePath -Append
+}
+
+# Display text tin Output Text 
+# Example: Add-SSAOutput -OutputText "Text"
+function Add-SSAOutput {
+	[CmdletBinding()]
+	Param
+	(
+		[Parameter(
+		Mandatory = $true)]
+		$OutputText
+	)
+
+	Begin{
+	}
+
+	Process{
+		$OutputDate = Get-Date -UFormat "%Y-%m-%d"
+		$OutputTime = Get-Date -UFormat "%H:%M:%S"
+		$Output_RichTextBox.Text += "[$OutputDate][$OutputTime] $OutputText`n"
+	}
+
+	End{
+	}
+}
+
+
+
+Add-Type -AssemblyName System.Windows.Forms
+
+$Profile_Management_Form = New-Object system.Windows.Forms.Form
+$Profile_Management_Form.Text = "Profile Management"
+$Profile_Management_Form.BackColor = "#4c97b4"
+$Profile_Management_Form.TopMost = $true
+$Profile_Management_Form.Width = 600
+$Profile_Management_Form.Height = 500
+$Profile_Management_Form
+
+$Progress_Label = New-Object system.windows.Forms.Label
+$Progress_Label.Text = "Progress"
+$Progress_Label.AutoSize = $true
+$Progress_Label.Width = 25
+$Progress_Label.Height = 10
+$Progress_Label.location = new-object system.drawing.point(24,271)
+$Progress_Label.Font = "Microsoft Sans Serif,10"
+$Profile_Management_Form.controls.Add($Progress_Label)
+
+$Delete_Checkbox = New-Object system.windows.Forms.CheckBox
+$Delete_Checkbox.Text = "Delete Profile"
+$Delete_Checkbox.AutoSize = $true
+$Delete_Checkbox.Width = 95
+$Delete_Checkbox.Height = 20
+$Delete_Checkbox.location = new-object system.drawing.point(38,71)
+$Delete_Checkbox.Font = "Microsoft Sans Serif,10"
+$Profile_Management_Form.controls.Add($Delete_Checkbox)
+
+$Archive_Checkbox = New-Object system.windows.Forms.CheckBox
+$Archive_Checkbox.Text = "Archive Profile"
+$Archive_Checkbox.AutoSize = $true
+$Archive_Checkbox.Width = 95
+$Archive_Checkbox.Height = 20
+$Archive_Checkbox.location = new-object system.drawing.point(37,101)
+$Archive_Checkbox.Font = "Microsoft Sans Serif,10"
+$Profile_Management_Form.controls.Add($Archive_Checkbox)
+
+#Scan profiles Button
+$Scan_Button = New-Object system.windows.Forms.Button
+$Scan_Button.location = new-object system.drawing.point(40,15)
+$Scan_Button.Font = "Microsoft Sans Serif,10"
+$Scan_Button.Text = "Scan"
+$Scan_Button.BackColor = "yellow"
+$Scan_Button.Width = 60
+$Scan_Button.Height = 30
+
+# Scan button click event
+$Scan_Button.Add_Click(
+    {
+		Add-SSAOutput -OutputText "Searching for profiles"
+		try{
+			$Available_Listview.Items.Clear()
+			$Selected_Listview.Items.Clear()
+			$AccountNames = (Get-WmiObject -Class Win32_Useraccount).name  
+			for ($i=0;$i -lt $AccountNames.Count; $i ++) {
+				$item = new-object System.Windows.Forms.ListViewItem($AccountNames[$i])
+				Add-ListItem $item
+			}
+		}
+		catch{
+			Add-SSAOutput -OutputText "Error: $($Error[0])"
+		}
+		Add-SSAOutput -OutputText "$($Available_Listview.Items.Count) accounts found"
+		Add-SSAOutput -OutputText "Search completed"
+   }
+)
+#This was the easies route to go
+function Add-ListItem ($item) {
+
+	$Available_Listview.Items.Add($item)
+}
+$Profile_Management_Form.controls.Add($Scan_Button)
+
+$Available_Listview = New-Object system.windows.Forms.ListView
+$Available_Listview.Width = 110
+$Available_Listview.Height = 170
+$Available_Listview.location = new-object system.drawing.point(250,70)
+$Available_Listview.CheckBoxes = $false
+$Available_ListView.View = [System.Windows.Forms.View]::Details
+$Available_Listview.Columns.Add("Profiles") | Out-Null
+$Available_ListView.AutoResizeColumns("HeaderSize")
+$Available_Listview.CheckBoxes = $true
+$Profile_Management_Form.controls.Add($Available_Listview)
+
+
+$Selected_Listview = New-Object system.windows.Forms.ListView
+$Selected_Listview.Width = 110
+$Selected_Listview.Height = 170
+$Selected_Listview.location = new-object system.drawing.point(442,72)
+$Selected_ListView.View = [System.Windows.Forms.View]::Details
+$Selected_Listview.Columns.Add("Profiles") | Out-Null
+$Selected_Listview.AutoResizeColumns("HeaderSize")
+$Selected_Listview.CheckBoxes = $true
+$Profile_Management_Form.controls.Add($Selected_Listview)
+
+# Add button 
+$Add_Button = New-Object system.windows.Forms.Button
+$Add_Button.Text = ">>"
+$Add_Button.Width = 60
+$Add_Button.Height = 30
+$Add_Button.location = new-object system.drawing.point(369,102)
+$Add_Button.Font = "Microsoft Sans Serif,10"
+$Profile_Management_Form.controls.Add($Add_Button)
+
+# Add button click event
+$Add_Button.Add_Click(
+	{	
+		try{
+			$Selected_Listview.Items.Clear()
+			$items = $Available_Listview.Items
+			foreach ($checked_item in $items) {
+				if(($checked_item).Checked){
+					$new_item = New-Object System.Windows.Forms.ListViewItem($checked_item.Text)
+					$Selected_Listview.Items.Add($new_item)
+				}
+			}
+		}
+		catch{
+			Add-SSAOutput -OutputText "Error $($Error[0])"
+			Log-It -LogRecord "Add_Button.Add_Click() Failed `n $($Error[0])"
+		}
+	}
+)
+
+$Remove_Button = New-Object system.windows.Forms.Button
+$Remove_Button.Text = "<<"
+$Remove_Button.Width = 60
+$Remove_Button.Height = 30
+$Remove_Button.location = new-object system.drawing.point(370,151)
+$Remove_Button.Font = "Microsoft Sans Serif,10"
+$Profile_Management_Form.controls.Add($Remove_Button)
+
+# Remove button click event
+$Remove_Button.Add_Click(
+	{	
+		try{
+			$items = $Selected_Listview.Items
+			foreach ($checked_item in $items) {
+				if(($checked_item).Checked){
+					$Selected_Listview.Items.Remove($checked_item)
+				}
+			}
+		}
+		catch{
+			Add-SSAOutput -OutputText "Error $($Error[0])"
+		}
+	}
+)
+
+
+#Start button
+$Start_Button = New-Object system.windows.Forms.Button
+$Start_Button.Text = "START"
+$Start_Button.Width = 60
+$Start_Button.Height = 30
+$Start_Button.BackColor = "Yellow"
+$Start_Button.location = new-object system.drawing.point(37,200)
+$Start_Button.Font = "Microsoft Sans Serif,10"
+$Profile_Management_Form.controls.Add($Start_Button)
+
+# Start Button Click Event
+$Start_Button.Add_Click({
+		try{
+
+			# If Archive Checked
+			if ($Archive_Checkbox.Checked) {
+				# get all checked usernames from checked items in Selected Listview
+				$Selected_Listview.items | ForEach-Object {
+					if($_.Checked){
+						try{
+							Add-SSAOutput -OutputText "Archiving $($_.Text)"
+							Backup-Profile -UserAccountName $_.Text
+						}
+						catch{
+							Log-It -LogRecord $Error[0]
+							Add-SSAOutput -OutputText $Error[0]
+						}
+					}
+				}
+			}
+			else {
+				Add-SSAOutput -OutputText "Archive box is not checked"
+			}
+			# Delete Checkbox checked
+			if ($Delete_Checkbox.Checked) {
+				# get all checked usernames from checked items in Selected Listview
+				$Selected_Listview.items | ForEach-Object {
+					if($_.Checked){
+						try{
+							Add-SSAOutput -OutputText "Archiving $($_.Text)"
+							Delete-identity -UserAccountName $_.Text
+						}
+						catch{
+							Log-It -LogRecord "Start_Button.Add_Click has Failed `n $($Error[0])"
+							Add-SSAOutput -OutputText $Error[0]
+						}
+					}
+				}
+			}
+			else {
+				Add-SSAOutput -OutputText "Delete box is not checked"
+			}#END ELSE
+		}# END TRY
+		catch{
+			Add-SSAOutput -OutputText "$($Error[0])"
+		}#END CATCH
+	}#END Click EVENT
+)
+
+# List of available profiles
+$Available_Label = New-Object system.windows.Forms.Label
+$Available_Label.Text = "Available Profiles"
+$Available_Label.AutoSize = $true
+$Available_Label.Width = 25
+$Available_Label.Height = 10
+$Available_Label.location = new-object system.drawing.point(259,47)
+$Available_Label.Font = "Microsoft Sans Serif,10"
+$Profile_Management_Form.controls.Add($Available_Label)
+
+
+$Selected_Profiles = New-Object system.windows.Forms.Label
+$Selected_Profiles.Text = "Selected Profiles"
+$Selected_Profiles.AutoSize = $true
+$Selected_Profiles.Width = 25
+$Selected_Profiles.Height = 10
+$Selected_Profiles.location = new-object system.drawing.point(449,47)
+$Selected_Profiles.Font = "Microsoft Sans Serif,10"
+$Profile_Management_Form.controls.Add($Selected_Profiles)
+
+
+$Progress_Label = New-Object system.windows.Forms.Label
+$Progress_Label.Text = "Progress"
+$Progress_Label.AutoSize = $true
+$Progress_Label.Width = 25
+$Progress_Label.Height = 10
+$Progress_Label.location = new-object system.drawing.point(24,271)
+$Progress_Label.Font = "Microsoft Sans Serif,10"
+$Profile_Management_Form.controls.Add($Progress_Label)
+$Profile_Management_Form.controls.Add($Scan_Button)
+
+#Output 
+$Output_RichTextBox = New-Object System.Windows.Forms.RichTextBox
+$Output_RichTextBox.Width = 542
+$Output_RichTextBox.Height = 139
+$Output_RichTextBox.location = new-object system.drawing.point(19,303)
+$Output_RichTextBox.ReadOnly = $True
+$Profile_Management_Form.controls.Add($Output_RichTextBox)
+
+[void]$Profile_Management_Form.ShowDialog()
+$Profile_Management_Form.Dispose()
+#XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX  END OF FORM  XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+
+# Deletes User Account and removes C:\Users\$UseraccountName folder
+# Example: Delete-Identity -UserAccountName <String>
+function Delete-identity {
+	[CmdletBinding()]
+	param (
+		[Parameter(Mandatory = $true)]
+		[string]
+		$UserAccountName
+	)
+	begin{
+	}
+	process {
+		$AllUserAccounts = Get-WmiObject -Class Win32_Useraccount
+		$AllUserAccounts | ForEach-Object {
+			if($_.name -eq $UserAccountName) {
+				$AccountSid = $_.sid
+				$FoundProfileObject = Get-WmiObject -Class win32_userprofile | Where-Object {$_.sid -eq  $AccountSid}
+				$FoundProfileObject |  Remove-WmiObject
+				NET USER $UserAccountName /DELETE
+
+				#Safety. $SafetyCheck = $true
+				if($SafetyCheck = $true){
+					Try{
+						Function Safety-On(){
+							Compress-Archive "C:\Users\$useraccountname" -DestinationPath "C:\Users\"
+							Log-It -LogRecord "Compressed C:\users"
+						}
+						if(Safety-On){
+							Remove-Item C:\Users\$UserAccountName
+							Log-It -LogRecord "Removed C:\Users\$UserAccountName"
+						}
+						else{
+							Remove-Item C:\Users\$UserAccountName
+						}	
+					}
+					Catch{
+						Add-SSAOutput -OutputText "$Useraccountname folder is gone now."
+					}
+				}
+				
+            }#END IF
+		}#END PIPE
+	}#END PROCESS
+	end {
+	}
+}
+#######
+# Compresses folder and copies it to target server
+# Exapmle Backup-Profile -UserAccountName "guest" 
+function Backup-Profile {
+	param(
+		[parameter(Mandatory=$true)]
+		[String[]] $UserAccountName,
+
+		[parameter(Mandatory=$false)]
+		[string]$BackupFilePath 
+	)
+	Try{
+		$ComputerName = $ENV:COMPUTERNAME
+		$BackupFilePath  = "C:\Users\$useraccountname-$computername"
+		$archiveTarget = "C:\users\$useraccountname\*"
+
+		Compress-Archive $archiveTarget -DestinationPath "$BackupFilePath " -Update
+		Add-SSAOutput -OutputText "Account $UserAccountName Archived successfully to $BackupFilePath "
+		Log-It "Account $UserAccountName Archived successfully to $BackupFilePath "
+
+		Copy-Item "$BackupFilePath.zip" $RemoteArchive
+		Log-It "Account $UserAccountName Archived successfully to $RemoteArchive "
+	}
+	Catch{
+		Log-It -LogRecord $Error[0]
+		Add-SSAOutput -OutputText $Error[0]
+	}
+}
